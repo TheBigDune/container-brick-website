@@ -6,6 +6,9 @@ import { Footer } from '@/components/layout/Footer';
 export const metadata: Metadata = {
   title: 'Container Brick',
   description: 'Professional container architectural solutions.',
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
