@@ -1,0 +1,28 @@
+{
+  "placeholderImages": [
+    {
+      "id": "container-industrial-1",
+      "description": "High-performance modular steel structure in an industrial setting.",
+      "imageUrl": "https://picsum.photos/seed/66/1200/800",
+      "imageHint": "industrial container architecture"
+    },
+    {
+      "id": "container-residence-1",
+      "description": "Minimalist residential container conversion with glass facades.",
+      "imageUrl": "https://picsum.photos/seed/77/1200/800",
+      "imageHint": "modern container home"
+    },
+    {
+      "id": "container-office-1",
+      "description": "Professional administrative modular workspace with clean lines.",
+      "imageUrl": "https://picsum.photos/seed/88/1200/800",
+      "imageHint": "container office design"
+    },
+    {
+      "id": "container-lab-1",
+      "description": "Specialized technical facility housed in a reinforced container.",
+      "imageUrl": "https://picsum.photos/seed/99/1200/800",
+      "imageHint": "technical modular facility"
+    }
+  ]
+}
