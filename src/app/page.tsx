@@ -26,6 +26,7 @@ export default function Home() {
               fill
               className="object-cover scale-105 animate-in zoom-in duration-[2000ms] ease-out"
               priority
+              unoptimized
             />
           )}
           {/* Subtle gradient overlay to enhance text readability while keeping the image vibrant */}
