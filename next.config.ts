@@ -30,7 +30,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'containerbrick.com',
+        hostname: 'pub-8bd96ff5b3f74aefab467e23265651e3.r2.dev',
         port: '',
         pathname: '/**',
       },
