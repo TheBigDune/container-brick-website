@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useDataStore, Project } from '@/lib/store';
@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Wand2, ArrowLeft, LogOut, ImageIcon, Trash2, Edit2, Layout, Database, Terminal } from 'lucide-react';
+import { Plus, Wand2, ArrowLeft, LogOut, ImageIcon, Trash2, Edit2, Layout, Database, Terminal, Container, UploadCloud, Loader2 } from 'lucide-react';
 import { generateProjectDescription } from '@/ai/flows/generate-project-description-flow';
 import Link from 'next/link';
 
@@ -32,6 +32,9 @@ export default function AdminDashboard() {
   const [tempHeroImage, setTempHeroImage] = useState('');
   const [tempDeskStatus, setTempDeskStatus] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
+  
+  const [isProjectFileUploading, setIsProjectFileUploading] = useState(false);
+  const [isHeroFileUploading, setIsHeroFileUploading] = useState(false);
 
   useEffect(() => {
     const token = sessionStorage.getItem('cb_admin_token');
@@ -118,186 +121,278 @@ export default function AdminDashboard() {
     }
   };
 
+  const uploadFileToR2 = async (file: File) => {
+    const uploadData = new FormData();
+    uploadData.append('file', file);
+    
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: uploadData,
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to upload to R2 properly.');
+    }
+    
+    const data = await response.json();
+    return data.url;
+  };
+
+  const handleProjectImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setIsProjectFileUploading(true);
+    try {
+      const fileUrl = await uploadFileToR2(e.target.files[0]);
+      setImageUrl(fileUrl);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsProjectFileUploading(false);
+      e.target.value = ''; 
+    }
+  };
+
+  const handleHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setIsHeroFileUploading(true);
+    try {
+      const fileUrl = await uploadFileToR2(e.target.files[0]);
+      setTempHeroImage(fileUrl);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsHeroFileUploading(false);
+      e.target.value = ''; 
+    }
+  };
+
   return (
-    <div className="bg-white min-h-screen">
-      <div className="border-b bg-zinc-50 py-4">
+    <div className="bg-[#FAFAFA] min-h-screen">
+      <div className="bg-white border-b border-zinc-100 py-4 shadow-sm relative z-20">
         <div className="container mx-auto px-6 flex justify-between items-center">
-          <div className="flex items-center gap-8">
-            <h1 className="text-xs font-black uppercase tracking-widest">Container Brick Admin</h1>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center">
+                <Container className="w-4 h-4 text-teal-600" />
+              </div>
+              <h1 className="text-sm font-bold text-zinc-900 tracking-tight">Admin System</h1>
+            </div>
+            <div className="h-6 w-px bg-zinc-200" />
             <nav className="flex gap-6">
-              <Link href="/admin/dashboard" className="text-[10px] font-black uppercase tracking-widest text-primary border-b border-primary">Registry</Link>
-              <Link href="/admin/passphrases" className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900 transition-colors">Access Keys</Link>
+              <Link href="/admin/dashboard" className="text-sm font-semibold text-teal-600 border-b-2 border-teal-600 pb-1">Registry</Link>
+              <Link href="/admin/passphrases" className="text-sm font-medium text-zinc-400 hover:text-zinc-900 transition-colors">Access Keys</Link>
             </nav>
           </div>
-          <div className="flex gap-6">
-            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest hover:text-primary transition-colors">
-              <ArrowLeft className="w-3 h-3" /> External View
+          <div className="flex gap-6 items-center">
+            <Link href="/" className="flex items-center gap-2 text-sm font-medium text-zinc-500 hover:text-teal-600 transition-colors">
+              <ArrowLeft className="w-4 h-4" /> Go to Website
             </Link>
-            <button onClick={handleLogout} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900 transition-colors">
-              <LogOut className="w-3 h-3" /> Exit
+            <button onClick={handleLogout} className="flex items-center gap-2 text-sm font-medium text-red-500 hover:text-red-700 transition-colors px-4 py-2 rounded-full hover:bg-red-50">
+              <LogOut className="w-4 h-4" /> Exit Setup
             </button>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-6 py-16">
+      <div className="container mx-auto px-6 py-12 max-w-6xl">
         <Tabs defaultValue="registry" className="w-full">
-          <div className="flex justify-between items-end mb-12">
+          <div className="flex justify-between items-end mb-10">
             <div>
-              <h2 className="text-[10px] uppercase tracking-widest text-zinc-400 font-black mb-4">System Console</h2>
-              <TabsList className="bg-transparent h-auto p-0 flex gap-8">
-                <TabsTrigger value="registry" className="rounded-none bg-transparent border-none p-0 data-[state=active]:text-black text-zinc-400 shadow-none">
-                  <div className="flex items-center gap-2">
-                    <Database className="w-4 h-4" />
-                    <span className="text-2xl font-bold uppercase tracking-tight">Project Registry</span>
+              <h2 className="text-teal-600 font-semibold tracking-wider text-xs uppercase mb-2">Management Area</h2>
+              <TabsList className="bg-transparent h-auto p-0 flex gap-6">
+                <TabsTrigger value="registry" className="rounded-xl bg-transparent border-none p-3 px-0 data-[state=active]:text-zinc-900 text-zinc-400 shadow-none hover:text-zinc-700 transition-colors relative before:absolute before:bottom-0 before:h-0.5 before:bg-teal-500 before:transition-all data-[state=active]:before:w-full before:w-0">
+                  <div className="flex items-center gap-3">
+                    <Database className="w-5 h-5" />
+                    <span className="text-3xl font-bold tracking-tight">Project Registry</span>
                   </div>
                 </TabsTrigger>
-                <TabsTrigger value="assets" className="rounded-none bg-transparent border-none p-0 data-[state=active]:text-black text-zinc-400 shadow-none">
-                  <div className="flex items-center gap-2">
-                    <Layout className="w-4 h-4" />
-                    <span className="text-2xl font-bold uppercase tracking-tight">Global Assets</span>
+                <TabsTrigger value="assets" className="rounded-xl bg-transparent border-none p-3 px-0 data-[state=active]:text-zinc-900 text-zinc-400 shadow-none hover:text-zinc-700 transition-colors relative before:absolute before:bottom-0 before:h-0.5 before:bg-teal-500 before:transition-all data-[state=active]:before:w-full before:w-0 ml-8">
+                  <div className="flex items-center gap-3">
+                    <Layout className="w-5 h-5" />
+                    <span className="text-3xl font-bold tracking-tight">Global Assets</span>
                   </div>
                 </TabsTrigger>
               </TabsList>
             </div>
             <TabsContent value="registry" className="m-0">
-              <Button onClick={handleAddProject} className="rounded-none font-black uppercase text-[10px] tracking-widest h-12 px-8">
-                <Plus className="w-4 h-4 mr-2" /> Add Entry
+              <Button onClick={handleAddProject} className="rounded-full shadow-lg shadow-teal-500/20 bg-teal-600 hover:bg-teal-500 text-white font-medium h-12 px-6">
+                <Plus className="w-5 h-5 mr-2" /> Add Project
               </Button>
             </TabsContent>
           </div>
 
-          <TabsContent value="registry">
+          <TabsContent value="registry" className="mt-8">
             {editingId && (
-              <div className="border border-zinc-200 p-10 mb-16 bg-zinc-50/30">
-                <h4 className="text-[10px] font-black uppercase tracking-widest mb-10 text-zinc-400">{editingId === 'new' ? 'Create New Entry' : 'Modify Registry'}</h4>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-10">
-                  <div className="space-y-8">
+              <div className="bg-white rounded-3xl p-8 mb-12 shadow-xl shadow-zinc-200/40 border border-zinc-100 animate-in fade-in slide-in-from-top-4">
+                <h4 className="text-xl font-bold mb-8 text-zinc-900 flex items-center gap-3">
+                  <Edit2 className="w-5 h-5 text-teal-500" />
+                  {editingId === 'new' ? 'Launch New Project' : 'Edit Project Details'}
+                </h4>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-10">
+                  <div className="space-y-6">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Designation</Label>
-                      <Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="rounded-none border-zinc-200 h-12" />
+                      <Label className="text-sm font-semibold text-zinc-700">Project Name</Label>
+                      <Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="rounded-xl border-zinc-200 h-12 bg-zinc-50 focus-visible:bg-white focus-visible:ring-teal-500" placeholder="e.g. The Glass Container" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Completion Date</Label>
-                      <Input value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="rounded-none border-zinc-200 h-12" />
+                      <Label className="text-sm font-semibold text-zinc-700">Completion Date</Label>
+                      <Input value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="rounded-xl border-zinc-200 h-12 bg-zinc-50 focus-visible:bg-white focus-visible:ring-teal-500" placeholder="e.g. October 2025" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Technical Image URL</Label>
-                      <Input 
-                        value={imageUrl} 
-                        onChange={e => setImageUrl(e.target.value)} 
-                        placeholder="https://images.unsplash.com/..." 
-                        className="rounded-none border-zinc-200 h-12" 
-                      />
+                      <Label className="text-sm font-semibold text-zinc-700">Cover Image URL (Direct / Cloudflare R2 Upload)</Label>
+                      <div className="flex gap-3">
+                        <Input 
+                          value={imageUrl} 
+                          onChange={e => setImageUrl(e.target.value)} 
+                          placeholder="Public URL or Upload via R2 Local..." 
+                          className="rounded-xl border-zinc-200 h-12 bg-zinc-50 focus-visible:bg-white focus-visible:ring-teal-500 flex-1" 
+                        />
+                        <div className="relative shrink-0 flex items-center">
+                           <Button type="button" disabled={isProjectFileUploading} className="rounded-xl border-zinc-200 text-zinc-700 bg-white shadow-sm hover:bg-zinc-50 font-semibold h-12 px-6">
+                              {isProjectFileUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UploadCloud className="w-4 h-4 mr-2 text-teal-500" />}
+                              Upload
+                           </Button>
+                           <input type="file" accept="image/*" onChange={handleProjectImageUpload} disabled={isProjectFileUploading} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-3 pt-4">
-                      <Checkbox id="featured" checked={formData.featured} onCheckedChange={(checked) => setFormData({...formData, featured: !!checked})} />
-                      <Label htmlFor="featured" className="text-[10px] font-black uppercase tracking-widest cursor-pointer">Priority Listing</Label>
+                    <div className="flex items-center space-x-3 pt-4 p-4 rounded-xl border border-zinc-100 bg-zinc-50/50">
+                      <Checkbox id="featured" checked={formData.featured} onCheckedChange={(checked) => setFormData({...formData, featured: !!checked})} className="data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600 w-5 h-5" />
+                      <Label htmlFor="featured" className="text-sm font-semibold text-zinc-700 cursor-pointer">Feature on Dashboard</Label>
                     </div>
                   </div>
-                  <div className="space-y-8">
+                  <div className="space-y-6">
                     <div className="space-y-2">
                       <div className="flex justify-between items-center mb-1">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Specifications</Label>
-                        <button onClick={handleGenerateAiDescription} disabled={isAiLoading} className="text-[9px] font-black uppercase tracking-widest text-primary flex items-center gap-2 hover:underline disabled:opacity-50">
-                          <Wand2 className="w-3 h-3" /> {isAiLoading ? 'Processing...' : 'Auto-Generate Specs'}
+                        <Label className="text-sm font-semibold text-zinc-700">Rich Description</Label>
+                        <button onClick={handleGenerateAiDescription} disabled={isAiLoading} className="text-xs font-semibold px-3 py-1.5 rounded-full bg-teal-50 text-teal-600 flex items-center gap-2 hover:bg-teal-100 transition-colors disabled:opacity-50">
+                          <Wand2 className="w-3.5 h-3.5" /> {isAiLoading ? 'Generating...' : 'AI Auto-Draft'}
                         </button>
                       </div>
-                      <Textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="rounded-none border-zinc-200 min-h-[160px]" />
+                      <Textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="rounded-xl border-zinc-200 min-h-[160px] bg-zinc-50 focus-visible:bg-white focus-visible:ring-teal-500 resize-none text-base" placeholder="Describe the structural modifications and layout..." />
                     </div>
-                    <div className="border border-dashed border-zinc-300 p-4 bg-white flex flex-col items-center justify-center aspect-video relative overflow-hidden">
+                    <div className="rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50 flex flex-col items-center justify-center aspect-video relative overflow-hidden group">
                       {imageUrl ? (
-                        <Image src={imageUrl} alt="Technical Preview" fill className="object-cover grayscale" unoptimized />
+                        <>
+                          <Image src={imageUrl} alt="Preview" fill className="object-cover" unoptimized />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <ImageIcon className="w-8 h-8 text-white" />
+                          </div>
+                        </>
                       ) : (
-                        <div className="flex flex-col items-center gap-3 text-zinc-300">
-                          <ImageIcon className="w-10 h-10 opacity-30" />
-                          <span className="text-[9px] font-black uppercase tracking-widest">Preview Projection</span>
+                        <div className="flex flex-col items-center gap-3 text-zinc-400">
+                          <div className="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center">
+                            <ImageIcon className="w-5 h-5" />
+                          </div>
+                          <span className="text-sm font-medium">No cover image specified</span>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
-                <div className="flex justify-end gap-4 pt-8 border-t border-zinc-200">
-                  <Button onClick={() => setEditingId(null)} variant="outline" className="rounded-none font-black uppercase text-[10px] tracking-widest h-12 px-8">Discard</Button>
-                  <Button onClick={handleSave} className="rounded-none font-black uppercase text-[10px] tracking-widest h-12 px-10">Commit Changes</Button>
+                <div className="flex justify-end gap-3 pt-6 border-t border-zinc-100">
+                  <Button onClick={() => setEditingId(null)} variant="outline" className="rounded-full font-medium h-12 px-8 text-zinc-500 bg-white border-zinc-200 hover:bg-zinc-50 hover:text-zinc-900">Cancel</Button>
+                  <Button onClick={handleSave} className="rounded-full font-medium h-12 px-10 shadow-lg shadow-teal-500/20 bg-teal-600 hover:bg-teal-500 text-white">Save Project Details</Button>
                 </div>
               </div>
             )}
 
-            <div className="border-t border-zinc-200">
-              {projects.map(project => (
-                <div key={project.id} className="border-b border-zinc-100 py-8 flex justify-between items-center px-4 hover:bg-zinc-50 transition-colors group">
-                  <div className="flex items-center gap-10">
-                    <div className="w-24 h-16 bg-zinc-100 relative overflow-hidden border border-zinc-200 shrink-0">
-                      {project.images?.[0] && (
-                        <Image src={project.images[0]} alt={project.title} fill className="object-cover grayscale" unoptimized />
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-4 mb-1">
-                        <h4 className="text-base font-bold uppercase tracking-tight">{project.title}</h4>
-                        {project.featured && <span className="text-[8px] border border-primary text-primary font-black px-2 py-0.5 uppercase tracking-widest">Priority</span>}
+            <div className="bg-white rounded-[2rem] shadow-xl shadow-zinc-200/30 border border-zinc-100 overflow-hidden">
+              <div className="grid gap-0 divide-y divide-zinc-100">
+                {projects.map(project => (
+                  <div key={project.id} className="p-6 flex justify-between items-center hover:bg-zinc-50/50 transition-colors group">
+                    <div className="flex items-center gap-6">
+                      <div className="w-32 h-20 bg-zinc-100 rounded-xl relative overflow-hidden shadow-sm shrink-0">
+                        {project.images?.[0] ? (
+                          <Image src={project.images[0]} alt={project.title} fill className="object-cover" unoptimized />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-6 h-6 text-zinc-300" /></div>
+                        )}
                       </div>
-                      <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">{project.date}</p>
+                      <div>
+                        <div className="flex items-center gap-3 mb-1.5">
+                          <h4 className="text-lg font-bold text-zinc-900">{project.title}</h4>
+                          {project.featured && <span className="text-[10px] font-bold bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full">Featured</span>}
+                        </div>
+                        <p className="text-sm text-zinc-500 font-medium">{project.date}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button onClick={() => handleEdit(project)} variant="ghost" size="sm" className="rounded-full text-zinc-500 hover:text-teal-600 hover:bg-teal-50 h-10 px-4">
+                        <Edit2 className="w-4 h-4 mr-2" /> Edit
+                      </Button>
+                      <Button onClick={() => handleDelete(project.id)} variant="ghost" size="sm" className="rounded-full text-zinc-400 hover:text-red-600 hover:bg-red-50 h-10 px-4">
+                        <Trash2 className="w-4 h-4 mr-2" /> Discard
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button onClick={() => handleEdit(project)} variant="outline" size="sm" className="rounded-none text-[9px] font-black uppercase tracking-widest h-10 px-6">
-                      <Edit2 className="w-3 h-3 mr-2" /> Modify
-                    </Button>
-                    <Button onClick={() => handleDelete(project.id)} variant="outline" size="sm" className="rounded-none text-[9px] font-black uppercase tracking-widest h-10 px-6 text-zinc-400 hover:text-red-600 hover:border-red-600">
-                      <Trash2 className="w-3 h-3 mr-2" /> Delete
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                ))}
+                {projects.length === 0 && (
+                  <div className="p-12 text-center text-zinc-400 font-medium text-sm">No projects stored. Add one above.</div>
+                )}
+              </div>
             </div>
           </TabsContent>
 
-          <TabsContent value="assets">
-            <div className="space-y-12">
-              <div className="border border-zinc-200 p-10 bg-zinc-50/30">
-                <h4 className="text-[10px] font-black uppercase tracking-widest mb-10 text-zinc-400">Hero Section Configuration</h4>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-                  <div className="space-y-8">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Hero Background URL</Label>
+          <TabsContent value="assets" className="mt-8">
+            <div className="bg-white rounded-3xl p-10 shadow-xl shadow-zinc-200/40 border border-zinc-100">
+              <h4 className="text-xl font-bold mb-8 text-zinc-900 flex items-center gap-3 border-b border-zinc-100 pb-6">
+                <Layout className="w-6 h-6 text-teal-500" />
+                Global Branding & Configuration
+              </h4>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                <div className="space-y-8">
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-zinc-700">Hero Section Background URL (Direct / R2 Upload)</Label>
+                    <div className="flex gap-3">
                       <Input 
                         value={tempHeroImage} 
                         onChange={e => setTempHeroImage(e.target.value)} 
-                        placeholder="Enter direct image URL..."
-                        className="rounded-none border-zinc-200 h-12" 
+                        placeholder="e.g. /images/hero.png"
+                        className="rounded-xl border-zinc-200 h-14 bg-zinc-50 focus-visible:bg-white focus-visible:ring-teal-500 px-5 text-base flex-1" 
                       />
+                      <div className="relative shrink-0 flex items-center">
+                         <Button type="button" disabled={isHeroFileUploading} className="rounded-xl border-zinc-200 text-zinc-700 bg-white shadow-sm hover:bg-zinc-50 font-semibold h-14 px-8">
+                            {isHeroFileUploading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <UploadCloud className="w-5 h-5 mr-3 text-teal-500" />}
+                            Upload
+                         </Button>
+                         <input type="file" accept="image/*" onChange={handleHeroImageUpload} disabled={isHeroFileUploading} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Technical Desk Status</Label>
-                      <Select value={tempDeskStatus} onValueChange={setTempDeskStatus}>
-                        <SelectTrigger className="rounded-none border-zinc-200 h-12 font-bold uppercase text-[10px] tracking-widest">
-                          <SelectValue placeholder="Select Status" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-none">
-                          <SelectItem value="Open" className="text-[10px] font-bold uppercase">Open</SelectItem>
-                          <SelectItem value="Closed - drop a message or email instead" className="text-[10px] font-bold uppercase">Closed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-[9px] text-zinc-400 uppercase font-black mt-2 tracking-tight">This updates the operational status displayed in the contact registry.</p>
-                    </div>
-                    <Button onClick={handleSaveAssets} className="rounded-none font-black uppercase text-[10px] tracking-widest h-12 px-10">Save Configuration</Button>
                   </div>
-                  <div className="space-y-4">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Visual Projection Preview</Label>
-                    <div className="border border-dashed border-zinc-300 p-4 bg-white relative aspect-video overflow-hidden">
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-zinc-700">Operational Desk Status</Label>
+                    <Select value={tempDeskStatus} onValueChange={setTempDeskStatus}>
+                      <SelectTrigger className="rounded-xl border-zinc-200 h-14 bg-zinc-50 focus:bg-white focus:ring-teal-500 px-5 text-base font-medium">
+                        <SelectValue placeholder="Select Status" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        <SelectItem value="Open" className="font-medium text-emerald-700">Platform Online - Taking Projects</SelectItem>
+                        <SelectItem value="Closed - drop a message or email instead" className="font-medium text-zinc-500">Temporarily Closed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-zinc-400 font-medium mt-3 leading-relaxed">This status appears publicly in the contact registry, controlling expectations of response times.</p>
+                  </div>
+                  <Button onClick={handleSaveAssets} className="w-full sm:w-auto rounded-full shadow-lg shadow-teal-500/20 bg-teal-600 hover:bg-teal-500 text-white font-medium h-14 px-10 text-base mt-4">Save Platform Assets</Button>
+                </div>
+                <div className="space-y-4">
+                  <Label className="text-sm font-semibold text-zinc-700">Live Projection</Label>
+                  <div className="rounded-3xl border border-zinc-200 bg-white p-2 shadow-lg relative aspect-video overflow-hidden group">
+                    <div className="rounded-[1.25rem] overflow-hidden w-full h-full relative relative">
                       {tempHeroImage ? (
-                        <div className="relative w-full h-full bg-black">
-                          <Image src={tempHeroImage} alt="Hero Preview" fill className="object-cover opacity-60 grayscale" unoptimized />
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <span className="text-white text-[10px] font-black uppercase tracking-widest border border-white/30 px-4 py-2">Preview Overlay</span>
+                        <div className="w-full h-full bg-zinc-900">
+                          <Image src={tempHeroImage} alt="Hero Preview" fill className="object-cover opacity-80" unoptimized />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                          <div className="absolute bottom-6 left-6 text-white">
+                            <span className="bg-teal-500 text-[10px] font-bold px-2 py-0.5 rounded shadow-sm text-white uppercase tracking-widest mb-1 inline-block">Review</span>
+                            <div className="text-2xl font-bold tracking-tight">Active Hero</div>
                           </div>
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center justify-center h-full gap-3 text-zinc-300">
-                          <ImageIcon className="w-10 h-10 opacity-30" />
-                          <span className="text-[9px] font-black uppercase tracking-widest">No Image Projection</span>
+                        <div className="flex flex-col items-center justify-center h-full gap-4 bg-zinc-50 text-zinc-400">
+                          <ImageIcon className="w-8 h-8 opacity-50" />
+                          <span className="text-sm font-medium">No Image Specified</span>
                         </div>
                       )}
                     </div>

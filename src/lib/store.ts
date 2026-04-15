@@ -34,7 +34,7 @@ const DEFAULT_PROJECTS: Project[] = [
     description: 'A three-container conversion into a luxury residential home with open-plan living and panoramic glass walls.',
     date: 'March 2024',
     featured: true,
-    images: ['https://picsum.photos/seed/101/800/600'],
+    images: ['/images/hero.png'],
   },
   {
     id: '2',
@@ -42,7 +42,7 @@ const DEFAULT_PROJECTS: Project[] = [
     description: 'Compact and efficient single-container workspace designed for a software development team.',
     date: 'January 2024',
     featured: true,
-    images: ['https://picsum.photos/seed/102/800/600'],
+    images: ['/images/office.png'],
   },
   {
     id: '3',
@@ -50,7 +50,7 @@ const DEFAULT_PROJECTS: Project[] = [
     description: 'Innovative pop-up cafe located at the city waterfront, utilizing modular container design.',
     date: 'December 2023',
     featured: false,
-    images: ['https://picsum.photos/seed/103/800/600'],
+    images: ['/images/cafe.png'],
   }
 ];
 
@@ -58,7 +58,7 @@ const DEFAULT_PASSPHRASES: Passphrase[] = [
   { id: '1', value: 'Prefabs1#' }
 ];
 
-const DEFAULT_HERO_IMAGE = "https://picsum.photos/seed/architecture/1920/1080";
+const DEFAULT_HERO_IMAGE = "/images/hero.png";
 const DEFAULT_DESK_STATUS = "Open";
 
 export function useDataStore() {
