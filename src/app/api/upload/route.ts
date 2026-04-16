@@ -10,11 +10,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
-    const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
-    const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
-    const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
-    const R2_PUBLIC_URL_PREFIX = process.env.R2_PUBLIC_URL_PREFIX;
+    const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID?.trim();
+    const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID?.trim();
+    const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY?.trim();
+    const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME?.trim();
+    const R2_PUBLIC_URL_PREFIX = process.env.R2_PUBLIC_URL_PREFIX?.trim() || "https://pub-8bd96ff5b3f74aefab467e23265651e3.r2.dev";
 
     if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET_NAME) {
       return NextResponse.json(
@@ -52,8 +52,8 @@ export async function POST(req: NextRequest) {
     const publicUrl = `${R2_PUBLIC_URL_PREFIX}/${fileName}`;
 
     return NextResponse.json({ url: publicUrl, success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Upload error:", error);
-    return NextResponse.json({ error: "Internal Server Error during upload" }, { status: 500 });
+    return NextResponse.json({ error: `Upload failed: ${error?.message || "Unknown Error"}` }, { status: 500 });
   }
 }
