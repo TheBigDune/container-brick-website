@@ -16,9 +16,15 @@ export async function POST(req: NextRequest) {
     const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME?.trim();
     const R2_PUBLIC_URL_PREFIX = process.env.R2_PUBLIC_URL_PREFIX?.trim() || "https://pub-8bd96ff5b3f74aefab467e23265651e3.r2.dev";
 
-    if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET_NAME) {
+    const missingVars = [];
+    if (!R2_ACCOUNT_ID) missingVars.push("R2_ACCOUNT_ID");
+    if (!R2_ACCESS_KEY_ID) missingVars.push("R2_ACCESS_KEY_ID");
+    if (!R2_SECRET_ACCESS_KEY) missingVars.push("R2_SECRET_ACCESS_KEY");
+    if (!R2_BUCKET_NAME) missingVars.push("R2_BUCKET_NAME");
+
+    if (missingVars.length > 0) {
       return NextResponse.json(
-        { error: "R2 credentials are not fully configured in the environment." },
+        { error: `R2 credentials are not fully configured. Missing/Empty: ${missingVars.join(", ")}` },
         { status: 500 }
       );
     }

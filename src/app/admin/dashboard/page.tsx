@@ -180,7 +180,7 @@ export default function AdminDashboard() {
             </div>
             <div className="h-6 w-px bg-zinc-200" />
             <nav className="flex gap-6">
-              <Link href="/admin/dashboard" className="text-sm font-semibold text-teal-600 border-b-2 border-teal-600 pb-1">Registry</Link>
+              <Link href="/admin/dashboard" className="text-sm font-semibold text-teal-600 border-b-2 border-teal-600 pb-1">Gallery</Link>
               <Link href="/admin/passphrases" className="text-sm font-medium text-zinc-400 hover:text-zinc-900 transition-colors">Access Keys</Link>
             </nav>
           </div>
@@ -204,7 +204,7 @@ export default function AdminDashboard() {
                 <TabsTrigger value="registry" className="rounded-xl bg-transparent border-none p-3 px-0 data-[state=active]:text-zinc-900 text-zinc-400 shadow-none hover:text-zinc-700 transition-colors relative before:absolute before:bottom-0 before:h-0.5 before:bg-teal-500 before:transition-all data-[state=active]:before:w-full before:w-0">
                   <div className="flex items-center gap-3">
                     <Database className="w-5 h-5" />
-                    <span className="text-3xl font-bold tracking-tight">Project Registry</span>
+                    <span className="text-3xl font-bold tracking-tight">Project Gallery</span>
                   </div>
                 </TabsTrigger>
                 <TabsTrigger value="assets" className="rounded-xl bg-transparent border-none p-3 px-0 data-[state=active]:text-zinc-900 text-zinc-400 shadow-none hover:text-zinc-700 transition-colors relative before:absolute before:bottom-0 before:h-0.5 before:bg-teal-500 before:transition-all data-[state=active]:before:w-full before:w-0 ml-8">
@@ -298,40 +298,38 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            <div className="bg-white rounded-[2rem] shadow-xl shadow-zinc-200/30 border border-zinc-100 overflow-hidden">
-              <div className="grid gap-0 divide-y divide-zinc-100">
-                {projects.map(project => (
-                  <div key={project.id} className="p-6 flex justify-between items-center hover:bg-zinc-50/50 transition-colors group">
-                    <div className="flex items-center gap-6">
-                      <div className="w-32 h-20 bg-zinc-100 rounded-xl relative overflow-hidden shadow-sm shrink-0">
-                        {project.images?.[0] ? (
-                          <Image src={project.images[0]} alt={project.title} fill className="object-cover" unoptimized />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-6 h-6 text-zinc-300" /></div>
-                        )}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-3 mb-1.5">
-                          <h4 className="text-lg font-bold text-zinc-900">{project.title}</h4>
-                          {project.featured && <span className="text-[10px] font-bold bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full">Featured</span>}
-                        </div>
-                        <p className="text-sm text-zinc-500 font-medium">{project.date}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button onClick={() => handleEdit(project)} variant="ghost" size="sm" className="rounded-full text-zinc-500 hover:text-teal-600 hover:bg-teal-50 h-10 px-4">
-                        <Edit2 className="w-4 h-4 mr-2" /> Edit
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {projects.map(project => (
+                <div key={project.id} className="bg-white rounded-[2rem] p-4 shadow-xl shadow-zinc-200/30 border border-zinc-100 hover:shadow-2xl hover:shadow-zinc-200/50 transition-all group flex flex-col">
+                  <div className="w-full aspect-video bg-zinc-100 rounded-3xl relative overflow-hidden shadow-inner mb-6 shrink-0">
+                    {project.images?.[0] ? (
+                      <Image src={project.images[0]} alt={project.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" unoptimized />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-8 h-8 text-zinc-300" /></div>
+                    )}
+                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button onClick={() => handleEdit(project)} size="icon" className="w-10 h-10 rounded-full bg-white/90 backdrop-blur text-zinc-700 hover:text-teal-600 hover:bg-white shadow-sm">
+                        <Edit2 className="w-4 h-4" />
                       </Button>
-                      <Button onClick={() => handleDelete(project.id)} variant="ghost" size="sm" className="rounded-full text-zinc-400 hover:text-red-600 hover:bg-red-50 h-10 px-4">
-                        <Trash2 className="w-4 h-4 mr-2" /> Discard
+                      <Button onClick={() => handleDelete(project.id)} size="icon" className="w-10 h-10 rounded-full bg-white/90 backdrop-blur text-zinc-700 hover:text-red-600 hover:bg-white shadow-sm">
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
-                ))}
-                {projects.length === 0 && (
-                  <div className="p-12 text-center text-zinc-400 font-medium text-sm">No projects stored. Add one above.</div>
-                )}
-              </div>
+                  <div className="px-2 pb-2 flex-grow flex flex-col">
+                    <div className="flex justify-between items-start mb-3 gap-4">
+                      <h4 className="text-xl font-bold text-zinc-900 leading-tight">{project.title}</h4>
+                      {project.featured && <span className="text-[10px] font-bold bg-teal-50 text-teal-700 px-2.5 py-1 rounded-full shrink-0 uppercase tracking-wider">Featured</span>}
+                    </div>
+                    <p className="text-sm text-zinc-500 font-medium mb-4">{project.date}</p>
+                  </div>
+                </div>
+              ))}
+              {projects.length === 0 && (
+                <div className="col-span-full bg-white rounded-[2rem] p-12 text-center text-zinc-400 font-medium text-sm border border-zinc-100 shadow-xl shadow-zinc-200/30">
+                  No projects stored. Add one above to start building your gallery.
+                </div>
+              )}
             </div>
           </TabsContent>
 
