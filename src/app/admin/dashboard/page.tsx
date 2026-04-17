@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { useDataStore, Project } from '@/lib/store';
+import { useDataStore, Project, GlobalSettings } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,7 +17,7 @@ import Link from 'next/link';
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const { projects, isLoaded, heroImage, deskStatus, saveProjects, saveHeroImage, saveDeskStatus } = useDataStore();
+  const { projects, isLoaded, globalSettings, saveProjects, saveGlobalSettings } = useDataStore();
   const [authorized, setAuthorized] = useState(false);
   
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -29,10 +29,11 @@ export default function AdminDashboard() {
     images: []
   });
   const [imageUrl, setImageUrl] = useState('');
-  const [tempHeroImage, setTempHeroImage] = useState('');
-  const [tempDeskStatus, setTempDeskStatus] = useState('');
-  const [isAiLoading, setIsAiLoading] = useState(false);
   
+  // Local state for global settings form
+  const [tempSettings, setTempSettings] = useState<Partial<GlobalSettings>>({});
+  
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const [isProjectFileUploading, setIsProjectFileUploading] = useState(false);
   const [isHeroFileUploading, setIsHeroFileUploading] = useState(false);
 
@@ -47,10 +48,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (isLoaded) {
-      setTempHeroImage(heroImage);
-      setTempDeskStatus(deskStatus);
+      setTempSettings(globalSettings);
     }
-  }, [isLoaded, heroImage, deskStatus]);
+  }, [isLoaded, globalSettings]);
 
   if (!authorized || !isLoaded) return null;
 
@@ -103,9 +103,8 @@ export default function AdminDashboard() {
   };
 
   const handleSaveAssets = () => {
-    saveHeroImage(tempHeroImage);
-    saveDeskStatus(tempDeskStatus);
-    alert('Global assets updated successfully.');
+    saveGlobalSettings(tempSettings);
+    alert('Global assets and copy updated successfully.');
   };
 
   const handleGenerateAiDescription = async () => {
@@ -158,7 +157,7 @@ export default function AdminDashboard() {
     setIsHeroFileUploading(true);
     try {
       const fileUrl = await uploadFileToR2(e.target.files[0]);
-      setTempHeroImage(fileUrl);
+      setTempSettings({ ...tempSettings, heroImage: fileUrl });
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -204,20 +203,20 @@ export default function AdminDashboard() {
                 <TabsTrigger value="registry" className="rounded-xl bg-transparent border-none p-3 px-0 data-[state=active]:text-zinc-900 text-zinc-400 shadow-none hover:text-zinc-700 transition-colors relative before:absolute before:bottom-0 before:h-0.5 before:bg-teal-500 before:transition-all data-[state=active]:before:w-full before:w-0">
                   <div className="flex items-center gap-3">
                     <Database className="w-5 h-5" />
-                    <span className="text-3xl font-bold tracking-tight">Project Gallery</span>
+                    <span className="text-3xl font-bold tracking-tight">Gallery Config</span>
                   </div>
                 </TabsTrigger>
                 <TabsTrigger value="assets" className="rounded-xl bg-transparent border-none p-3 px-0 data-[state=active]:text-zinc-900 text-zinc-400 shadow-none hover:text-zinc-700 transition-colors relative before:absolute before:bottom-0 before:h-0.5 before:bg-teal-500 before:transition-all data-[state=active]:before:w-full before:w-0 ml-8">
                   <div className="flex items-center gap-3">
                     <Layout className="w-5 h-5" />
-                    <span className="text-3xl font-bold tracking-tight">Global Assets</span>
+                    <span className="text-3xl font-bold tracking-tight">Platform Settings</span>
                   </div>
                 </TabsTrigger>
               </TabsList>
             </div>
             <TabsContent value="registry" className="m-0">
               <Button onClick={handleAddProject} className="rounded-full shadow-lg shadow-teal-500/20 bg-teal-600 hover:bg-teal-500 text-white font-medium h-12 px-6">
-                <Plus className="w-5 h-5 mr-2" /> Add Project
+                <Plus className="w-5 h-5 mr-2" /> Add Entry
               </Button>
             </TabsContent>
           </div>
@@ -227,7 +226,7 @@ export default function AdminDashboard() {
               <div className="bg-white rounded-3xl p-8 mb-12 shadow-xl shadow-zinc-200/40 border border-zinc-100 animate-in fade-in slide-in-from-top-4">
                 <h4 className="text-xl font-bold mb-8 text-zinc-900 flex items-center gap-3">
                   <Edit2 className="w-5 h-5 text-teal-500" />
-                  {editingId === 'new' ? 'Launch New Project' : 'Edit Project Details'}
+                  {editingId === 'new' ? 'Launch New Gallery Item' : 'Edit Gallery Details'}
                 </h4>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-10">
                   <div className="space-y-6">
@@ -259,7 +258,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="flex items-center space-x-3 pt-4 p-4 rounded-xl border border-zinc-100 bg-zinc-50/50">
                       <Checkbox id="featured" checked={formData.featured} onCheckedChange={(checked) => setFormData({...formData, featured: !!checked})} className="data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600 w-5 h-5" />
-                      <Label htmlFor="featured" className="text-sm font-semibold text-zinc-700 cursor-pointer">Feature on Dashboard</Label>
+                      <Label htmlFor="featured" className="text-sm font-semibold text-zinc-700 cursor-pointer">Feature on Homepage</Label>
                     </div>
                   </div>
                   <div className="space-y-6">
@@ -293,7 +292,7 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex justify-end gap-3 pt-6 border-t border-zinc-100">
                   <Button onClick={() => setEditingId(null)} variant="outline" className="rounded-full font-medium h-12 px-8 text-zinc-500 bg-white border-zinc-200 hover:bg-zinc-50 hover:text-zinc-900">Cancel</Button>
-                  <Button onClick={handleSave} className="rounded-full font-medium h-12 px-10 shadow-lg shadow-teal-500/20 bg-teal-600 hover:bg-teal-500 text-white">Save Project Details</Button>
+                  <Button onClick={handleSave} className="rounded-full font-medium h-12 px-10 shadow-lg shadow-teal-500/20 bg-teal-600 hover:bg-teal-500 text-white">Save Gallery Details</Button>
                 </div>
               </div>
             )}
@@ -337,17 +336,20 @@ export default function AdminDashboard() {
             <div className="bg-white rounded-3xl p-10 shadow-xl shadow-zinc-200/40 border border-zinc-100">
               <h4 className="text-xl font-bold mb-8 text-zinc-900 flex items-center gap-3 border-b border-zinc-100 pb-6">
                 <Layout className="w-6 h-6 text-teal-500" />
-                Global Branding & Configuration
+                Platform Website Content Management
               </h4>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                
+                {/* Visual Settings Column */}
                 <div className="space-y-8">
+                  <h5 className="text-sm font-bold uppercase tracking-widest text-teal-600 bg-teal-50 inline-block px-3 py-1.5 rounded-full">Visual Assets & Status</h5>
+                  
                   <div className="space-y-3">
-                    <Label className="text-sm font-semibold text-zinc-700">Hero Section Background URL (Direct / R2 Upload)</Label>
+                    <Label className="text-sm font-semibold text-zinc-700">Hero Section Background Image</Label>
                     <div className="flex gap-3">
                       <Input 
-                        value={tempHeroImage} 
-                        onChange={e => setTempHeroImage(e.target.value)} 
-                        placeholder="e.g. /images/hero.png"
+                        value={tempSettings.heroImage || ''} 
+                        onChange={e => setTempSettings({...tempSettings, heroImage: e.target.value})} 
                         className="rounded-xl border-zinc-200 h-14 bg-zinc-50 focus-visible:bg-white focus-visible:ring-teal-500 px-5 text-base flex-1" 
                       />
                       <div className="relative shrink-0 flex items-center">
@@ -359,42 +361,108 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   </div>
+
                   <div className="space-y-3">
                     <Label className="text-sm font-semibold text-zinc-700">Operational Desk Status</Label>
-                    <Select value={tempDeskStatus} onValueChange={setTempDeskStatus}>
+                    <Select value={tempSettings.deskStatus || 'Open'} onValueChange={val => setTempSettings({...tempSettings, deskStatus: val})}>
                       <SelectTrigger className="rounded-xl border-zinc-200 h-14 bg-zinc-50 focus:bg-white focus:ring-teal-500 px-5 text-base font-medium">
                         <SelectValue placeholder="Select Status" />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl">
-                        <SelectItem value="Open" className="font-medium text-emerald-700">Platform Online - Taking Projects</SelectItem>
-                        <SelectItem value="Closed - drop a message or email instead" className="font-medium text-zinc-500">Temporarily Closed</SelectItem>
+                        <SelectItem value="Open" className="font-medium text-emerald-700">Taking Projects (Open)</SelectItem>
+                        <SelectItem value="Closed" className="font-medium text-zinc-500">Temporarily Closed</SelectItem>
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-zinc-400 font-medium mt-3 leading-relaxed">This status appears publicly in the contact registry, controlling expectations of response times.</p>
                   </div>
-                  <Button onClick={handleSaveAssets} className="w-full sm:w-auto rounded-full shadow-lg shadow-teal-500/20 bg-teal-600 hover:bg-teal-500 text-white font-medium h-14 px-10 text-base mt-4">Save Platform Assets</Button>
+                  
+                  <h5 className="text-sm font-bold uppercase tracking-widest text-teal-600 bg-teal-50 inline-block px-3 py-1.5 rounded-full mt-6">Contact & Info</h5>
+
+                   <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-zinc-700">WhatsApp / Primary Contact Number</Label>
+                    <Input 
+                      value={tempSettings.contactWhatsApp || ''} 
+                      onChange={e => setTempSettings({...tempSettings, contactWhatsApp: e.target.value})} 
+                      className="rounded-xl border-zinc-200 h-14 bg-zinc-50 focus-visible:bg-white focus-visible:ring-teal-500 px-5 text-base" 
+                    />
+                  </div>
+
+                   <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-zinc-700">Secondary Contact Number</Label>
+                    <Input 
+                      value={tempSettings.contactSecondary || ''} 
+                      onChange={e => setTempSettings({...tempSettings, contactSecondary: e.target.value})} 
+                      className="rounded-xl border-zinc-200 h-14 bg-zinc-50 focus-visible:bg-white focus-visible:ring-teal-500 px-5 text-base" 
+                    />
+                  </div>
+
+                   <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-zinc-700">Digital Registry Email</Label>
+                    <Input 
+                      value={tempSettings.contactEmail || ''} 
+                      onChange={e => setTempSettings({...tempSettings, contactEmail: e.target.value})} 
+                      className="rounded-xl border-zinc-200 h-14 bg-zinc-50 focus-visible:bg-white focus-visible:ring-teal-500 px-5 text-base" 
+                    />
+                  </div>
+                  
+                   <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-zinc-700">Headquarters Location</Label>
+                    <Input 
+                      value={tempSettings.locationText || ''} 
+                      onChange={e => setTempSettings({...tempSettings, locationText: e.target.value})} 
+                      className="rounded-xl border-zinc-200 h-14 bg-zinc-50 focus-visible:bg-white focus-visible:ring-teal-500 px-5 text-base" 
+                    />
+                  </div>
+
                 </div>
-                <div className="space-y-4">
-                  <Label className="text-sm font-semibold text-zinc-700">Live Projection</Label>
-                  <div className="rounded-3xl border border-zinc-200 bg-white p-2 shadow-lg relative aspect-video overflow-hidden group">
-                    <div className="rounded-[1.25rem] overflow-hidden w-full h-full relative relative">
-                      {tempHeroImage ? (
-                        <div className="w-full h-full bg-zinc-900">
-                          <Image src={tempHeroImage} alt="Hero Preview" fill className="object-cover opacity-80" unoptimized />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-                          <div className="absolute bottom-6 left-6 text-white">
-                            <span className="bg-teal-500 text-[10px] font-bold px-2 py-0.5 rounded shadow-sm text-white uppercase tracking-widest mb-1 inline-block">Review</span>
-                            <div className="text-2xl font-bold tracking-tight">Active Hero</div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center h-full gap-4 bg-zinc-50 text-zinc-400">
-                          <ImageIcon className="w-8 h-8 opacity-50" />
-                          <span className="text-sm font-medium">No Image Specified</span>
-                        </div>
-                      )}
-                    </div>
+
+                {/* Text Settings Column */}
+                <div className="space-y-8">
+                   <h5 className="text-sm font-bold uppercase tracking-widest text-teal-600 bg-teal-50 inline-block px-3 py-1.5 rounded-full">Hero Typography</h5>
+                   
+                   <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-zinc-700">Hero Main Title</Label>
+                    <Input 
+                      value={tempSettings.heroTitle || ''} 
+                      onChange={e => setTempSettings({...tempSettings, heroTitle: e.target.value})} 
+                      className="rounded-xl border-zinc-200 h-14 bg-zinc-50 focus-visible:bg-white focus-visible:ring-teal-500 px-5 text-base" 
+                    />
+                    <p className="text-xs text-zinc-400 font-medium">Use **text** for gradient highlight. E.g. Reimagining Spaces w/ **Modular Elegance**</p>
                   </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-zinc-700">Hero Subtitle</Label>
+                    <Textarea 
+                      value={tempSettings.heroSubtitle || ''} 
+                      onChange={e => setTempSettings({...tempSettings, heroSubtitle: e.target.value})} 
+                      className="rounded-xl border-zinc-200 bg-zinc-50 focus-visible:bg-white focus-visible:ring-teal-500 px-5 text-base resize-none h-32" 
+                    />
+                  </div>
+
+                  <h5 className="text-sm font-bold uppercase tracking-widest text-teal-600 bg-teal-50 inline-block px-3 py-1.5 rounded-full mt-6">Process Section</h5>
+
+                   <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-zinc-700">Core Capability Title</Label>
+                    <Input 
+                      value={tempSettings.aboutTitle || ''} 
+                      onChange={e => setTempSettings({...tempSettings, aboutTitle: e.target.value})} 
+                      className="rounded-xl border-zinc-200 h-14 bg-zinc-50 focus-visible:bg-white focus-visible:ring-teal-500 px-5 text-base" 
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-zinc-700">Core Capability Overview</Label>
+                    <Textarea 
+                      value={tempSettings.aboutText || ''} 
+                      onChange={e => setTempSettings({...tempSettings, aboutText: e.target.value})} 
+                      className="rounded-xl border-zinc-200 bg-zinc-50 focus-visible:bg-white focus-visible:ring-teal-500 px-5 text-base resize-none h-40" 
+                    />
+                  </div>
+
+                  <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 flex justify-between items-center mt-12 shadow-inner">
+                    <div className="text-sm font-medium text-zinc-500">Unsaved changes will be lost upon exit.</div>
+                    <Button onClick={handleSaveAssets} className="rounded-full shadow-lg shadow-teal-500/20 bg-teal-600 hover:bg-teal-500 text-white font-medium h-14 px-10 text-base">Save All Global Content</Button>
+                  </div>
+
                 </div>
               </div>
             </div>

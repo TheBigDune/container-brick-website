@@ -7,8 +7,6 @@ import {
   doc, 
   setDoc, 
   getDocs, 
-  query, 
-  limit,
   deleteDoc
 } from 'firebase/firestore';
 import { db } from './firebase';
@@ -25,6 +23,19 @@ export type Project = {
 export type Passphrase = {
   id: string;
   value: string;
+};
+
+export type GlobalSettings = {
+  heroImage: string;
+  deskStatus: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  aboutTitle: string;
+  aboutText: string;
+  contactWhatsApp: string;
+  contactSecondary: string;
+  contactEmail: string;
+  locationText: string;
 };
 
 const DEFAULT_PROJECTS: Project[] = [
@@ -58,14 +69,23 @@ const DEFAULT_PASSPHRASES: Passphrase[] = [
   { id: '1', value: 'Prefabs1#' }
 ];
 
-const DEFAULT_HERO_IMAGE = "/images/hero.png";
-const DEFAULT_DESK_STATUS = "Open";
+const DEFAULT_SETTINGS: GlobalSettings = {
+  heroImage: "/images/hero.png",
+  deskStatus: "Open",
+  heroTitle: "Reimagining Spaces with Modular Elegance.",
+  heroSubtitle: "We convert industrial shipping containers into sustainable, high-performance residential spaces and modern commercial infrastructure.",
+  aboutTitle: "Uncompromising Structural Integrity",
+  aboutText: "Transforming robust shipping containers into sustainable, highly isolated modular environments that stand the test of time while offering premium architectural finishes and superior insulation.",
+  contactWhatsApp: "+234 701 701 7722",
+  contactSecondary: "+234 810 106 3676",
+  contactEmail: "containerbrickng@gmail.com",
+  locationText: "Lagos, Nigeria"
+};
 
 export function useDataStore() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [passphrases, setPassphrases] = useState<Passphrase[]>([]);
-  const [heroImage, setHeroImage] = useState<string>(DEFAULT_HERO_IMAGE);
-  const [deskStatus, setDeskStatus] = useState<string>(DEFAULT_DESK_STATUS);
+  const [globalSettings, setGlobalSettings] = useState<GlobalSettings>(DEFAULT_SETTINGS);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -73,7 +93,6 @@ export function useDataStore() {
     const projectsQuery = collection(db, 'projects');
     const unsubProjects = onSnapshot(projectsQuery, (snapshot) => {
       if (snapshot.empty && !isLoaded) {
-        // Optional: Initialize with defaults if empty
         DEFAULT_PROJECTS.forEach(p => setDoc(doc(db, 'projects', p.id), p));
       } else {
         const projectData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Project));
@@ -93,19 +112,15 @@ export function useDataStore() {
       }
     });
 
-    // 3. Settings (Hero & Status) Real-time Listener
+    // 3. Settings (Global) Real-time Listener
     const settingsDoc = doc(db, 'settings', 'global');
     const unsubSettings = onSnapshot(settingsDoc, (snapshot) => {
       if (snapshot.exists()) {
-        const data = snapshot.data();
-        if (data.heroImage) setHeroImage(data.heroImage);
-        if (data.deskStatus) setDeskStatus(data.deskStatus);
+        const data = snapshot.data() as Partial<GlobalSettings>;
+        setGlobalSettings(prev => ({ ...prev, ...data }));
       } else {
         // Initialize defaults
-        setDoc(settingsDoc, { 
-          heroImage: DEFAULT_HERO_IMAGE, 
-          deskStatus: DEFAULT_DESK_STATUS 
-        });
+        setDoc(settingsDoc, DEFAULT_SETTINGS);
       }
     });
 
@@ -117,29 +132,21 @@ export function useDataStore() {
   }, [isLoaded]);
 
   const saveProjects = async (newProjects: Project[]) => {
-    // Since the UI passes the whole array, we sync it
-    // For a cleaner approach in production, you'd handle individual doc updates
-    // but this maintains compatibility with the existing admin UI.
-    
-    // 1. Get current IDs to find what to delete
     const snapshot = await getDocs(collection(db, 'projects'));
     const currentIds = snapshot.docs.map(d => d.id);
     const newIds = newProjects.map(p => p.id);
     
-    // 2. Delete removed projects
     const toDelete = currentIds.filter(id => !newIds.includes(id));
     for (const id of toDelete) {
       await deleteDoc(doc(db, 'projects', id));
     }
     
-    // 3. Update/Add projects
     for (const project of newProjects) {
       await setDoc(doc(db, 'projects', project.id), project);
     }
   };
 
   const savePassphrases = async (newPassphrases: Passphrase[]) => {
-    // Sync passphrases similarly
     const snapshot = await getDocs(collection(db, 'passphrases'));
     const currentIds = snapshot.docs.map(d => d.id);
     const newIds = newPassphrases.map(p => p.id);
@@ -154,23 +161,22 @@ export function useDataStore() {
     }
   };
 
-  const saveHeroImage = async (newUrl: string) => {
-    await setDoc(doc(db, 'settings', 'global'), { heroImage: newUrl }, { merge: true });
-  };
-
-  const saveDeskStatus = async (newStatus: string) => {
-    await setDoc(doc(db, 'settings', 'global'), { deskStatus: newStatus }, { merge: true });
+  const saveGlobalSettings = async (newSettings: Partial<GlobalSettings>) => {
+    await setDoc(doc(db, 'settings', 'global'), newSettings, { merge: true });
   };
 
   return { 
     projects, 
     passphrases, 
-    heroImage, 
-    deskStatus, 
+    globalSettings,
     isLoaded, 
     saveProjects, 
     savePassphrases, 
-    saveHeroImage, 
-    saveDeskStatus 
+    saveGlobalSettings,
+    // Keep backward compatibility for older components during refactoring
+    heroImage: globalSettings.heroImage,
+    deskStatus: globalSettings.deskStatus,
+    saveHeroImage: async (url: string) => saveGlobalSettings({ heroImage: url }),
+    saveDeskStatus: async (status: string) => saveGlobalSettings({ deskStatus: status }),
   };
 }
